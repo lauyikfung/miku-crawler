@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    {% load static %}
+  <meta charset="utf-8">
+  <title>视频搜索结果</title>
+  <style>
+    body {
+      background-image: url({% static 'other_image/mainphoto.jpeg' %});
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      background-size: 100%;
+    }
+
+    #search {
+      position: absolute;
+      top: 8px;
+      border-radius: 100%;
+    }
+
+    .all_video {
+      position: absolute;
+      top: 140px;
+      left: 340px;
+      width: 77%;
+    }
+
+    .video_photo {
+        border-radius: 10px;
+      position: relative;
+      width: 13%;
+      height: 120px;
+        vertical-align:middle;
+    }
+
+    .subvideo {
+        text-align: left;
+        border-radius: 10px;
+        vertical-align:middle;
+      position: relative;
+      text-decoration: none;
+      font-size: 28px;
+      font-weight: 400;
+      color: white;
+      width: 82%;
+      font-family: "等线";
+      padding: 0px 13px;
+      min-height: 120px;
+      max-height: 120px;
+      background-color: rgba(0, 0, 0, 0.25);
+      display: inline-block;
+      -webkit-box-shadow: 0px 0px 0px 1px rgba(255, 255, 255, 0.4)inset;
+      -moz-box-shadow: 0px 0px 0px 1px rgba(255, 255, 255, 0.4)inset;
+      margin: 0 6px 0px 0;
+      overflow: hidden;
+      line-height: 40px;
+    }
+
+    .subvideo:hover {
+      margin-top: 0px;
+      margin-right: 3px;
+      margin-bottom: 0px;
+      margin-left: -3px;
+      border: 3px solid #000;
+    }
+
+    .video_list {
+      padding-bottom: 30px;
+    }
+
+    .modern {
+      text-align: center;
+      text-decoration: none;
+      width: 5.5%;
+      padding: 0 6px;
+      border-radius: 10%;
+        font-family: "等线";
+        font-size: 15px;
+      color: black;
+        font-size: 18px;
+      background-color: rgba(57, 197, 187, 0.25);
+      display: inline-block;
+      position: relative;
+      -webkit-box-shadow: 0px 0px 0px 1px rgba(255, 255, 255, 0.4)inset;
+      -moz-box-shadow: 0px 0px 0px 1px rgba(255, 255, 255, 0.4)inset;
+      margin: 0px 6px 7px 35px;
+      overflow: hidden;
+    }
+  </style>
+</head>
+
+<body>
+  <a href="/mainpage/">
+    <img src="../static/other_image/search.jpg" id="search" height="60px" width="60px">
+  </a>
+  <p style="position: absolute;top: 15px;left: 390px;font-size: 3.5ch;" id="keying"></p>
+  <p style="position: absolute;top: 68px;left: 393px;font-size: 2.5ch;" id="total_num"></p>
+  <p style="position: absolute;top: 68px;left: 640px;font-size: 2.5ch;" id="total_time"></p>
+  <form method="POST" action="/video/" name="listing1" enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="hidden" name="ord" id="ord" value="">
+  </form>
+  <form class="all_video" method="POST" action="/video/" name="listing" enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="hidden" name="ord" id="ord" value="">
+    <ol id="this" style="list-style-type:none;">
+    </ol>
+    <div id="pages">
+    </div>
+  </form>
+  <script language="JavaScript">
+    var all_video = [];
+    var str;
+    var page = 1;
+    var total_num = 5146;
+    function tovideo(x){
+        document.getElementById("ord").value=x;
+    }
+    function changelist() {
+      var tmp = '';
+      for (var i = (page - 1) * 20; i < 20 * page; i++) {
+        if (i > total_num - 1) {
+          break;
+        }
+        var title = all_video[{{ result }}[i] - 1]['title'];
+        var imge = all_video[{{ result }}[i] - 1]['pic'];
+        var n = {{ result }}[i] - 1;
+        tmp += '<li class="video_list" ><div><img src="../static/' + imge + '" class="video_photo"><input class="subvideo" type="button" onclick="tovideo('+n+');listing1.submit();" value="' + title + '"></input></span></div></li>'
+      }
+      document.getElementById("this").innerHTML = tmp;
+    }
+    function loadXMLDoc() {
+      var xmlhttp;
+      if (window.XMLHttpRequest) {
+        //  IE7+, Firefox, Chrome, Opera, Safari 浏览器执行代码
+        xmlhttp = new XMLHttpRequest();
+      }
+      else {
+        // IE6, IE5 浏览器执行代码
+        xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+      }
+      xmlhttp.onreadystatechange = function () {
+        if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+          str = xmlhttp.responseText;
+          all_video = JSON.parse(str);
+          total_num = {{ num }};
+          document.getElementById("total_time").innerHTML = "总用时："+ {{ time }} + 'ms';
+          document.getElementById("total_num").innerHTML = "总视频数："+total_num;
+          document.getElementById("keying").innerHTML = '{{ keys }}'+' 搜索结果';
+          changelist();
+          topage(page);
+        }
+      }
+      xmlhttp.open("GET", "../static/video_new.json", true);
+      xmlhttp.send();
+      return 1;
+    }
+    var x = loadXMLDoc();
+    function changing(x) {
+      var goal = parseInt(x);
+      if (Number.isFinite(goal) != true) {
+        goal = 1;
+      }
+      if (goal <= 0) {
+        goal = 1;
+      }
+      if (goal > (total_num + 19) / 20) {
+        goal = 1;
+      }
+      page = goal;
+      changelist();
+      topage(goal);
+    }
+    function topage(x) {
+      var goal = parseInt(x);
+      if (Number.isFinite(goal) != true) {
+        goal = 1;
+      }
+      if (goal <= 0) {
+        goal = 1;
+      }
+      if (goal > (total_num + 19) / 20) {
+        goal = 1;
+      }
+      var temp = '';
+      if (goal != 1) {
+        var goal0 = goal - 1;
+        temp += '<button onclick="changing(' + goal0 + ')" class="modern"><p>上一页</p></button>'
+      }
+      temp += '<button onclick="changing(1)" class="modern"><p>1</p></button>';
+      if (goal > 3) {
+        temp += '<button onclick="changing(' + page + ')" class="modern"><p>...</p></button>';
+      }
+      if (goal > 2) {
+        var goal1 = goal - 1;
+        temp += '<button onclick="changing(' + goal1 + ')" class="modern"><p>' + goal1 + '</p></button>';
+      }
+      if (goal > 1) {
+        temp += '<button onclick="changing(' + page + ')" class="modern"><p>' + goal + '</p></button>';
+      }
+      if (goal < total_num / 20) {
+        var goal2 = goal + 1;
+        temp += '<button onclick="changing(' + goal2 + ')" class="modern"><p>' + goal2 + '</p></button>';
+      }
+      if (goal < total_num / 20 - 2) {
+        temp += '<button onclick="changing(' + page + ')" class="modern"><p>...</p></button>';
+      }
+      if (goal < total_num / 20 - 1) {
+        var ending = Math.ceil(total_num / 20);
+        temp += '<button onclick="changing(' + ending + ')" class="modern"><p>' + ending + '</p></button>';
+      }
+      if (goal < total_num / 20) {
+        var goal3 = goal + 1;
+        temp += '<button onclick="changing(' + goal3 + ')" class="modern"><p>下一页</p></button>'
+      }
+      temp+='转至第<input id="paging">页<button onclick="changeto()" class="modern"><p>GO</p></button>'
+      document.getElementById("pages").innerHTML = temp;
+    }
+    function changeto(){
+        x=document.getElementById("paging").value;
+        changing(x);
+    }
+
+  </script>
+</body>
+
+</html>
